@@ -6,6 +6,7 @@ import '../../domain/schedule.dart';
 import '../../state/providers.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'feedback_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -186,6 +187,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ],
               ],
+            ),
+          ),
+          _SettingRow(
+            title: 'Обратная связь',
+            subtitle: 'Написать разработчику',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FeedbackScreen()),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.onInk,
             ),
           ),
           const Padding(

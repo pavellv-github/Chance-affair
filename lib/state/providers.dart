@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/activity_generator.dart';
 import '../data/calendar_service.dart';
+import '../data/feedback_service.dart';
 import '../data/groq_activity_generator.dart';
 import '../data/local_storage.dart';
 import '../data/offline_activity_generator.dart';
@@ -34,6 +35,10 @@ final calendarServiceProvider = Provider<CalendarService>(
 
 final reminderServiceProvider = Provider<ReminderService>(
   (ref) => LocalReminderService(),
+);
+
+final feedbackServiceProvider = Provider<FeedbackService>(
+  (ref) => FormSubmitFeedbackService(client: ref.watch(httpClientProvider)),
 );
 
 final offlineGeneratorProvider = Provider<ActivityGenerator>(

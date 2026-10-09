@@ -1,5 +1,6 @@
 import 'package:chance_affair/data/activity_generator.dart';
 import 'package:chance_affair/data/calendar_service.dart';
+import 'package:chance_affair/data/feedback_service.dart';
 import 'package:chance_affair/data/reminder_service.dart';
 import 'package:chance_affair/domain/activity.dart';
 import 'package:chance_affair/state/providers.dart';
@@ -77,6 +78,23 @@ class FakeReminders implements ReminderService {
   }
 }
 
+class FakeFeedback implements FeedbackService {
+  FakeFeedback({this.error});
+
+  final Exception? error;
+  final sent = <({String message, String name, String email})>[];
+
+  @override
+  Future<void> send({
+    required String message,
+    String name = '',
+    String email = '',
+  }) async {
+    if (error != null) throw error!;
+    sent.add((message: message, name: name, email: email));
+  }
+}
+
 /// 8 октября 2026, 9:30.
 final fixedNow = DateTime(2026, 10, 8, 9, 30);
 
@@ -108,6 +126,7 @@ List<Override> overridesFor(
   ActivityGenerator? offline,
   CalendarService? calendar,
   ReminderService? reminders,
+  FeedbackService? feedback,
   DateTime? now,
   String builtInKey = '',
 }) {
@@ -121,5 +140,6 @@ List<Override> overridesFor(
     ),
     calendarServiceProvider.overrideWithValue(calendar ?? FakeCalendar()),
     reminderServiceProvider.overrideWithValue(reminders ?? FakeReminders()),
+    feedbackServiceProvider.overrideWithValue(feedback ?? FakeFeedback()),
   ];
 }

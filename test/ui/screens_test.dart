@@ -1,5 +1,6 @@
 import 'package:chance_affair/app.dart';
 import 'package:chance_affair/data/calendar_service.dart';
+import 'package:chance_affair/data/feedback_service.dart';
 import 'package:chance_affair/data/local_storage.dart';
 import 'package:chance_affair/domain/activity.dart';
 import 'package:chance_affair/ui/profile/profile_screen.dart';
@@ -21,6 +22,7 @@ Future<void> _pumpApp(
   FakeCalendar? calendar,
   FakeReminders? reminders,
   FakeGenerator? offline,
+  FakeFeedback? feedback,
   String builtInKey = '',
 }) async {
   tester.view.physicalSize = const Size(1170, 2532);
@@ -33,6 +35,7 @@ Future<void> _pumpApp(
         calendar: calendar,
         reminders: reminders,
         offline: offline,
+        feedback: feedback,
         builtInKey: builtInKey,
       ),
       child: const ChanceAffairApp(),
@@ -258,5 +261,75 @@ void main() {
     await tester.tap(find.text('Подбор'));
     await tester.pumpAndSettle();
     expect(find.text('Профиль сохранён'), findsNothing);
+  });
+
+  testWidgets('обратная связь: проверка полей и отправка', (tester) async {
+    final feedback = FakeFeedback();
+    await _pumpApp(
+      tester,
+      await _prefs({'user_profile_v1': '{"name":"Павел"}'}),
+      feedback: feedback,
+    );
+
+    await tester.tap(find.text('Настройки'));
+    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.text('Обратная связь'));
+
+    // Имя подставляется из профиля.
+    expect(find.widgetWithText(TextFormField, 'Павел'), findsOneWidget);
+
+    await _tapVisible(tester, find.text('Отправить'));
+    expect(find.text('Напишите сообщение'), findsOneWidget);
+    expect(feedback.sent, isEmpty);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Почта для ответа (необязательно)'),
+      'не-почта',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Сообщение'),
+      'Отличное приложение!',
+    );
+    await _tapVisible(tester, find.text('Отправить'));
+    expect(find.text('Проверьте адрес почты'), findsOneWidget);
+    expect(feedback.sent, isEmpty);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'не-почта'),
+      'me@example.com',
+    );
+    await _tapVisible(tester, find.text('Отправить'));
+
+    expect(feedback.sent.single, (
+      message: 'Отличное приложение!',
+      name: 'Павел',
+      email: 'me@example.com',
+    ));
+    expect(find.text('Спасибо! Сообщение отправлено'), findsOneWidget);
+    expect(find.text('Написать разработчику'), findsOneWidget);
+  });
+
+  testWidgets('обратная связь: ошибка отправки остаётся на экране', (
+    tester,
+  ) async {
+    await _pumpApp(
+      tester,
+      await _prefs(),
+      feedback: FakeFeedback(
+        error: const FeedbackException('Нет подключения к интернету.'),
+      ),
+    );
+
+    await tester.tap(find.text('Настройки'));
+    await tester.pumpAndSettle();
+    await _tapVisible(tester, find.text('Обратная связь'));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Сообщение'),
+      'Привет',
+    );
+    await _tapVisible(tester, find.text('Отправить'));
+
+    expect(find.text('Нет подключения к интернету.'), findsOneWidget);
+    expect(find.text('Привет'), findsOneWidget);
   });
 }
